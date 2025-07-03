@@ -20,7 +20,7 @@ No more messy download folders — just clean, categorized file structures in se
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/file-aranger.git
+git clone https://github.com/neuro-tx/file-aranger.git
 cd file-aranger
 ```
 ```bash
