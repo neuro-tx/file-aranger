@@ -1,0 +1,30 @@
+# Node.js dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Environment variables (if you ever add one)
+.env
+
+# macOS / Linux temp
+.AppleDouble
+.Spotlight-V100
+.Trashes

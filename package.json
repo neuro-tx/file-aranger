@@ -1,0 +1,23 @@
+{
+  "name": "file-manager",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "bin": {
+    "file-manager": "./dist/bin/cli.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^24.0.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
