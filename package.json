@@ -9,10 +9,10 @@
     "start": "node dist/index.js"
   },
   "bin": {
-    "file-manager": "./dist/bin/cli.js"
+    "fm": "./dist/bin/cli.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "neuro-tx",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
