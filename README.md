@@ -7,10 +7,9 @@ No more messy download folders — just clean, categorized file structures in se
 
 ## 🚀 Features
 
-- ***Organizes files into folders by extension (e.g., `.jpg` → `Jpgs`, `.mp4` → `Mp4s`)***
-- ***Supports nested directory scanning***
-- ***Built with TypeScript + Node.js***
-- ***Can be used via CLI or imported into other Node projects***
+- ***Organizes files into human-readable folders by extension*** (e.g., `.jpg` → `Images`, `.mp4` → `Videos`, `.exe` → `Executables`)  
+- ***Built with TypeScript + Node.js***  
+- ***Can be used via CLI or imported into other Node projects***  
 - ***Extensible and developer-friendly***
 
 ---
@@ -43,11 +42,11 @@ await arange("C:/Users/yourname/Downloads");
 ### 📌 CLI
 
 ```bash
-file-manager <path-to-your-folder>
+fm <path-to-your-folder>
 ```
 - ***example***
 ```bash
-file-manager C:\Users\yourname\Downloads
+fm C:/Users/yourname/Downloads
 ```
 
 | Script          | Description                  |

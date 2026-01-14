@@ -1,3 +1,8 @@
-import { arange } from "./src/main";
+import { arrange } from "./src";
 
-export default arange;
+async function name() {
+  const res = await arrange("D:/test/public");
+  // console.log(res);
+}
+
+name();

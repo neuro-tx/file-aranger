@@ -1,6 +1,6 @@
-type MediaType = Record<string, string[]>;
+import { MediaRules } from "./types";
 
-export const mediaTypes: MediaType = {
+export const mediaTypes: MediaRules = {
   images: [
     "jpg",
     "jpeg",
@@ -70,5 +70,5 @@ export const mediaTypes: MediaType = {
   markdown: ["md"],
   logs: ["log"],
 
-  others: [],
+  // others: [], --> Auto added in plan builder
 };
