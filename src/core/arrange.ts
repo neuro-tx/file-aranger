@@ -43,21 +43,16 @@ function buildExtMap(rules: MediaRules): Map<string, string> {
   return map;
 }
 
-export function buildPlan(
-  files: FileNode[],
-  baseDir: string,
-  rules?: MediaRules
-): MovePlan[] {
+export function createRouter(rules?: MediaRules) {
   const resolved = resolveRules(rules);
   const extMap = buildExtMap(resolved);
 
-  return files.map((file) => {
+  return (file: FileNode, baseDir: string) => {
     const folder = extMap.get(file.ext) ?? "others";
     const destDir = normalizePath(sp.join(baseDir, folder));
     const destPath = normalizePath(sp.join(destDir, file.name));
-
     return { file, destDir, destPath };
-  });
+  };
 }
 
 export async function intialBuildState(dir: string): Promise<FileNode[]> {

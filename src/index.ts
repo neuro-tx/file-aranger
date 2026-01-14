@@ -1,66 +1,83 @@
 import { ArrangeStats, MediaRules } from "../utils/types";
-import { buildPlan, intialBuildState, printPlan } from "./core/arrange";
-import { move as safeMove } from "../utils/helper";
+import { createRouter, intialBuildState, printPlan } from "./core/arrange";
+import { normalizePath, move as safeMove } from "../utils/helper";
+import { stat } from "fs";
 
 interface ArrangeOptions {
   rules?: MediaRules;
   dryRun?: boolean;
+  onMove?: (move: { file: string; dest: string }, stats: ArrangeStats) => void;
 }
 
 /**
  * Arrange files in a folder into sub-folders based on file extension.
  *
- * - Creates needed folders (Images, Videos, Documents, etc.)
- * - Skips directories
- * - Detects the correct folder for each file
- * - Moves each file into its category folder
+ * Features:
+ * - Creates necessary folders (Images, Videos, Documents, etc.)
+ * - Skips directories automatically
+ * - Detects the correct folder for each file based on extension rules
+ * - Supports custom rules to override default folders
+ * - Dry-run mode to simulate moves without touching files
+ * - Returns detailed stats for scanned, moved, skipped, and errors
+ * - Optional callback for integration with UI or real-time updates
  *
- * @param path Path of the directory to organize
- * @param options -
- *  - `dryRun`: for dry run simulation
- *  - `rules`: rules for folders names , if not arrange by defalut will rename folders to a readable names
+ * @param baseDir The root directory containing files to organize
+ * @param options Optional settings including rules, dryRun, and callback
+ * @returns ArrangeStats with scanned, moved, skipped, and error counts
  */
 export async function arrange(
   path: string,
   options?: ArrangeOptions
 ): Promise<ArrangeStats> {
-  const { rules, dryRun = false } = options ?? {};
+  const { rules, dryRun = false, onMove } = options ?? {};
   const stats: ArrangeStats = {
     scanned: 0,
     moved: 0,
     skipped: 0,
     errors: 0,
   };
-  const files = await intialBuildState(path);
-  stats.scanned = files.length;
-  const plan = buildPlan(files, path, rules);
-  console.log(plan)
 
-  if (dryRun) {
-    printPlan(plan);
-  }
+  try {
+    const files = await intialBuildState(path);
+    if (files.length === 0) return stats;
+    stats.scanned = files.length;
 
-  for (const move of plan) {
-    const src = move.file.fullPath;
-    const dest = move.destPath;
-
-    if (src === dest) {
-      stats.skipped++;
-      continue;
-    }
+    const route = createRouter(rules);
+    const plan = files.map((f) => route(f, path));
 
     if (dryRun) {
-      stats.moved++;
-      continue;
+      printPlan(plan);
     }
 
-    try {
-      await await safeMove(src, dest);
-      stats.moved++;
-    } catch (err) {
-      console.error("Move failed:", src, "→", dest, err);
-      stats.errors++;
+    for (const move of plan) {
+      const src = normalizePath(move.file.fullPath);
+      const dest = normalizePath(move.destPath);
+
+      if (src === dest) {
+        stats.skipped++;
+        onMove?.({ file: src, dest }, stats);
+        continue;
+      }
+
+      if (dryRun) {
+        stats.moved++;
+        onMove?.({ file: src, dest }, stats);
+        continue;
+      }
+
+      try {
+        await safeMove(src, dest);
+        stats.moved++;
+        onMove?.({ file: src, dest }, stats);
+      } catch (err) {
+        console.error("Move failed:", src, "→", dest, err);
+        stats.errors++;
+        onMove?.({ file: src, dest }, stats);
+      }
     }
+  } catch (err: any) {
+    console.error("Arrange process failed:", err?.message ?? err);
+    stats.errors = stats.scanned;
   }
 
   return stats;

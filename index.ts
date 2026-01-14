@@ -1,8 +1,14 @@
 import { arrange } from "./src";
 
 async function name() {
-  const res = await arrange("D:/test/public");
-  // console.log(res);
+  await arrange("D:/test/public", {
+    dryRun: false,
+    onMove(move, stats) {
+      console.log(
+        `[${stats.moved}/${stats.scanned}] ${move.file} → ${move.dest}`
+      );
+    },
+  });
 }
 
 name();
