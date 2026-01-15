@@ -20,3 +20,13 @@ export type ArrangeStats = {
 };
 
 export type MediaRules = Record<string, readonly string[]>;
+
+export interface WalkError {
+  path: string;
+  error: string;
+}
+
+export interface WalkResult {
+  files: FileNode[];
+  errors: WalkError[];
+}

@@ -1,7 +1,6 @@
 import { ArrangeStats, MediaRules } from "../utils/types";
 import { createRouter, intialBuildState, printPlan } from "./core/arrange";
 import { normalizePath, move as safeMove } from "../utils/helper";
-import { stat } from "fs";
 
 interface ArrangeOptions {
   rules?: MediaRules;
@@ -21,7 +20,7 @@ interface ArrangeOptions {
  * - Returns detailed stats for scanned, moved, skipped, and errors
  * - Optional callback for integration with UI or real-time updates
  *
- * @param baseDir The root directory containing files to organize
+ * @param path The root directory containing files to organize
  * @param options Optional settings including rules, dryRun, and callback
  * @returns ArrangeStats with scanned, moved, skipped, and error counts
  */
