@@ -30,3 +30,10 @@ export interface WalkResult {
   files: FileNode[];
   errors: WalkError[];
 }
+
+export type ConflictStrategy = "rename" | "overwrite" | "skip";
+
+export type DeleteEmptyDirsResult = {
+  deleted: number;
+  skipped: number;
+};

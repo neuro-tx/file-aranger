@@ -1,7 +1,13 @@
 import * as sp from "node:path";
 import fs from "fs/promises";
 import { normalizeExt, normalizePath } from "../../utils/helper";
-import { FileNode, WalkError, WalkResult } from "../../utils/types";
+import {
+  DeleteEmptyDirsResult,
+  FileNode,
+  WalkError,
+  WalkResult,
+} from "../../utils/types";
+import { Dirent } from "node:fs";
 
 export async function walk(
   path: string,
@@ -50,4 +56,55 @@ export async function walk(
   }
 
   return { files: result, errors: _errors };
+}
+
+export async function deleteEmptyDirs(
+  root: string,
+  _protectedDir: string = root
+): Promise<DeleteEmptyDirsResult> {
+  const protectedDir = sp.resolve(_protectedDir);
+
+  let deleted = 0;
+  let skipped = 0;
+
+  async function dirsCrowl(dir: string): Promise<boolean> {
+    let entries: Dirent<string>[];
+
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch (error) {
+      skipped++;
+      return false;
+    }
+
+    let isEmpty = true;
+
+    for (const entry of entries) {
+      const fullPath = sp.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        const childEmpty = await dirsCrowl(fullPath);
+        if (!childEmpty) isEmpty = false;
+      } else {
+        isEmpty = false;
+      }
+    }
+
+    if (isEmpty && sp.resolve(dir) !== protectedDir) {
+      try {
+        await fs.rmdir(dir);
+        deleted++;
+        return true;
+      } catch (e) {
+        console.error(e);
+        skipped++;
+        return false;
+      }
+    }
+    return false;
+  }
+
+  await dirsCrowl(sp.resolve(root));
+
+  return { deleted, skipped };
 }
