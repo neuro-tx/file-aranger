@@ -1,13 +1,17 @@
-import { arrange } from "./src";
+import { arrange, flatten } from "./src";
+import { log } from "./utils/logger";
 
 async function name() {
-  await arrange("D:/test/public", {
+  await arrange("D:/test", {
     dryRun: false,
     onMove(move, stats) {
-      console.log(
-        `[${stats.moved}/${stats.scanned}] ${move.file} → ${move.dest}`
-      );
+      log.onMove(move, stats);
     },
+  });
+
+  await flatten("D:/test", {
+    deleteEmpty: true,
+    conflict: "overwrite",
   });
 }
 

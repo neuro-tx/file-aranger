@@ -4,21 +4,13 @@ import fs from "fs/promises";
 import { ConflictStrategy, FileNode } from "../../utils/types";
 import { normalizePath } from "../../utils/helper";
 
-interface FlattenOpts {
-  depth?: number;
-  dryRun?: boolean;
-  conflict?: ConflictStrategy;
-  level?: number;
-  deleteEmpty?: boolean;
-}
-
 export interface UniquePathResult {
   action: "use" | "skip";
   destName: string;
   destPath: string;
 }
 
-const resolveNames = (
+export const resolveNames = (
   destRoot: string,
   files: FileNode[],
   conflict: ConflictStrategy = "rename"

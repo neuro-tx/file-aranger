@@ -11,9 +11,11 @@ import { Dirent } from "node:fs";
 
 export async function walk(
   path: string,
+  depth: number = 0,
+  level: number = 0,
   result: FileNode[] = [],
   _visited = new Set<string>(),
-  _errors: WalkError[] = []
+  _errors: WalkError[] = [] ,
 ): Promise<WalkResult> {
   // Resolve real path to avoid symlink loops
   const real = await fs.realpath(path);
@@ -21,6 +23,8 @@ export async function walk(
     return { files: result, errors: _errors };
   }
   _visited.add(real);
+  const unlimited = depth === 0;
+  if (!unlimited && level > depth) return { files: result, errors: _errors };
 
   try {
     const entries = await fs.readdir(real, { withFileTypes: true });
@@ -30,7 +34,7 @@ export async function walk(
 
       try {
         if (entry.isDirectory()) {
-          await walk(full, result, _visited, _errors);
+          await walk(full, depth, level + 1, result, _visited, _errors);
         } else if (entry.isFile()) {
           const stat = await fs.stat(full);
           result.push({
