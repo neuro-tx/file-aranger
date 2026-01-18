@@ -49,15 +49,14 @@ export async function arrange(
 
   try {
     const files = await intialBuildState(path);
-    if (files.length === 0) return stats;
+    if (files.length === 0) {
+      log.info("Nothing to arrange");
+      return stats;
+    }
     stats.scanned = files.length;
 
     const route = createRouter(rules);
     const plan = files.map((f) => route(f, path));
-
-    if (dryRun) {
-      printPlan(plan);
-    }
 
     for (const move of plan) {
       const src = normalizePath(move.file.fullPath);
@@ -66,11 +65,13 @@ export async function arrange(
       if (src === dest) {
         stats.skipped++;
         onMove?.({ file: src, dest }, stats);
+        log.skipped(src);
         continue;
       }
 
       if (dryRun) {
         stats.moved++;
+        log.dryRun(src, dest);
         onMove?.({ file: src, dest }, stats);
         continue;
       }
@@ -78,15 +79,16 @@ export async function arrange(
       try {
         await safeMove(src, dest);
         stats.moved++;
+        log.success(src, dest);
         onMove?.({ file: src, dest }, stats);
       } catch (err) {
-        console.error("Move failed:", src, "→", dest, err);
         stats.errors++;
+        log.error(src, dest, err);
         onMove?.({ file: src, dest }, stats);
       }
     }
   } catch (err: any) {
-    console.error("Arrange process failed:", err?.message ?? err);
+    log.fatal(err);
     stats.errors = stats.scanned;
   }
 
