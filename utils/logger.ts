@@ -1,4 +1,4 @@
-import { ArrangeStats } from "./types";
+import { OperationStats  } from "./types";
 
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
@@ -16,7 +16,7 @@ const colors = {
 
 const ARROW = "➜";
 
-export const log = {
+const log = {
   dryRun(src: string, dest: string) {
     console.log(
       `${colors.yellow}${BOLD}[DryRun]${RESET} ` +
@@ -38,7 +38,7 @@ export const log = {
     console.log(`${colors.blue}[Skip]${RESET} ${DIM}${src}${RESET}`);
   },
 
-  onMove(move: { file: string; dest: string }, stats: ArrangeStats) {
+  onMove(move: { file: string; dest: string }, stats: OperationStats ) {
     console.log(
       `${colors.cyan}${BOLD}[${stats.moved}/${stats.scanned}]${RESET} ` +
         `${DIM}${move.file}${RESET} ${ARROW} ` +
@@ -65,3 +65,8 @@ export const log = {
     );
   },
 };
+
+export function resolveLogger(enabled?: boolean) {
+  if (!enabled) return undefined;
+  return log;
+}

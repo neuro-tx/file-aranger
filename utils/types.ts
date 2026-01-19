@@ -6,13 +6,7 @@ export type FileNode = {
   dir: string;
 };
 
-export type MovePlan = {
-  file: FileNode;
-  destDir: string;
-  destPath: string;
-};
-
-export type ArrangeStats = {
+export type OperationStats = {
   scanned: number;
   moved: number;
   skipped: number;

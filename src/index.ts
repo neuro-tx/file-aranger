@@ -1,14 +1,18 @@
-import { ArrangeStats, ConflictStrategy, MediaRules } from "../utils/types";
-import { createRouter, intialBuildState, printPlan } from "./core/arrange";
+import { OperationStats, ConflictStrategy, MediaRules } from "../utils/types";
+import { createRouter, intialBuildState } from "./core/arrange";
 import { normalizePath, move as safeMove } from "../utils/helper";
 import { deleteEmptyDirs, walk } from "./core/handlers";
 import { resolveNames } from "./core/flat";
-import { log } from "../utils/logger";
+import { resolveLogger } from "../utils/logger";
 
 interface ArrangeOptions {
   rules?: MediaRules;
   dryRun?: boolean;
-  onMove?: (move: { file: string; dest: string }, stats: ArrangeStats) => void;
+  onMove?: (
+    move: { file: string; dest: string },
+    stats: OperationStats
+  ) => void;
+  log?: boolean;
 }
 
 interface FlattenOpts {
@@ -17,6 +21,7 @@ interface FlattenOpts {
   conflict?: ConflictStrategy;
   level?: number;
   deleteEmpty?: boolean;
+  log?: boolean;
 }
 
 /**
@@ -33,24 +38,26 @@ interface FlattenOpts {
  *
  * @param path The root directory containing files to organize
  * @param options Optional settings including rules, dryRun, and callback
- * @returns ArrangeStats with scanned, moved, skipped, and error counts
+ * @returns OperationStats  with scanned, moved, skipped, and error counts
  */
 export async function arrange(
   path: string,
   options?: ArrangeOptions
-): Promise<ArrangeStats> {
-  const { rules, dryRun = false, onMove } = options ?? {};
-  const stats: ArrangeStats = {
+): Promise<OperationStats> {
+  const { rules, dryRun = false, onMove, log: enabled = false } = options ?? {};
+  const stats: OperationStats = {
     scanned: 0,
     moved: 0,
     skipped: 0,
     errors: 0,
   };
 
+  const logger = resolveLogger(enabled);
+
   try {
     const files = await intialBuildState(path);
     if (files.length === 0) {
-      log.info("Nothing to arrange");
+      logger?.info("Nothing to arrange");
       return stats;
     }
     stats.scanned = files.length;
@@ -65,13 +72,13 @@ export async function arrange(
       if (src === dest) {
         stats.skipped++;
         onMove?.({ file: src, dest }, stats);
-        log.skipped(src);
+        logger?.skipped(src);
         continue;
       }
 
       if (dryRun) {
         stats.moved++;
-        log.dryRun(src, dest);
+        logger?.dryRun(src, dest);
         onMove?.({ file: src, dest }, stats);
         continue;
       }
@@ -79,16 +86,16 @@ export async function arrange(
       try {
         await safeMove(src, dest);
         stats.moved++;
-        log.success(src, dest);
+        logger?.success(src, dest);
         onMove?.({ file: src, dest }, stats);
       } catch (err) {
         stats.errors++;
-        log.error(src, dest, err);
+        logger?.error(src, dest, err);
         onMove?.({ file: src, dest }, stats);
       }
     }
   } catch (err: any) {
-    log.fatal(err);
+    logger?.fatal(err);
     stats.errors = stats.scanned;
   }
 
@@ -114,13 +121,17 @@ export async function flatten(path: string, opts?: FlattenOpts) {
     conflict = "rename",
     dryRun = false,
     deleteEmpty = true,
+    log: enabled = false,
   } = opts ?? {};
   path = normalizePath(path);
-  const stats = {
+  const stats: OperationStats = {
     scanned: 0,
     moved: 0,
     errors: 0,
+    skipped: 0,
   };
+
+  const logger = resolveLogger(enabled);
 
   try {
     const { files, errors } = await walk(path, depth, level);
@@ -128,14 +139,14 @@ export async function flatten(path: string, opts?: FlattenOpts) {
     stats.errors = errors.length;
 
     if (files.length === 0) {
-      log.info("Nothing to flatten (no files found)");
+      logger?.info("Nothing to flatten (no files found)");
       return stats;
     }
 
     const hasNestedFiles = files.some((f) => normalizePath(f.dir) !== path);
 
     if (!hasNestedFiles) {
-      log.info("Nothing to flatten (no nested folders)");
+      logger?.info("Nothing to flatten (no nested folders)");
       return stats;
     }
 
@@ -145,21 +156,22 @@ export async function flatten(path: string, opts?: FlattenOpts) {
       const dest = p.dest;
 
       if (src === dest) {
-        log.skipped(src);
+        logger?.skipped(src);
+        stats.skipped++;
         continue;
       }
       if (dryRun) {
         stats.moved++;
-        log.dryRun(src, dest);
+        logger?.dryRun(src, dest);
         continue;
       }
       try {
         await safeMove(src, dest);
         stats.moved++;
-        log.success(src, dest);
+        logger?.success(src, dest);
       } catch (err) {
         stats.errors++;
-        log.error(src, dest, err);
+        logger?.error(src, dest, err);
       }
     }
 
@@ -167,7 +179,7 @@ export async function flatten(path: string, opts?: FlattenOpts) {
       await deleteEmptyDirs(path);
     }
   } catch (err) {
-    log.fatal(err);
+    logger?.fatal(err);
     stats.errors = stats.scanned;
   }
 

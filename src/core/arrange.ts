@@ -1,5 +1,5 @@
 import { mediaTypes } from "../../utils/names";
-import { FileNode, MediaRules, MovePlan } from "../../utils/types";
+import { FileNode, MediaRules } from "../../utils/types";
 import * as sp from "node:path";
 import fs from "fs/promises";
 import { normalizeExt, normalizePath } from "../../utils/helper";
@@ -76,22 +76,4 @@ export async function intialBuildState(dir: string): Promise<FileNode[]> {
     });
   }
   return files;
-}
-
-export function printPlan(plan: MovePlan[]) {
-  const rows = plan.map((p) => ({
-    from: p.file.fullPath,
-    to: p.destPath,
-  }));
-  const fromWidth = Math.max("FROM".length, ...rows.map((r) => r.from.length));
-  const toWidth = Math.max("TO".length, ...rows.map((r) => r.to.length));
-
-  const line = () => "─".repeat(fromWidth / 2 + toWidth);
-
-  console.log(` FROM${" ".repeat(fromWidth - 4)} │ TO`);
-  console.log(line());
-
-  for (const r of rows) {
-    console.log(` ${r.from}${" ".repeat(fromWidth - r.from.length)} │ ${r.to}`);
-  }
 }

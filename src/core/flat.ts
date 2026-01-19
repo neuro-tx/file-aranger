@@ -1,6 +1,4 @@
-import { deleteEmptyDirs, walk } from "./handlers";
 import * as sp from "node:path";
-import fs from "fs/promises";
 import { ConflictStrategy, FileNode } from "../../utils/types";
 import { normalizePath } from "../../utils/helper";
 
