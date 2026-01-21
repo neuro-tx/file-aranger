@@ -4,7 +4,7 @@ import { normalizeExt, normalizePath } from "../../utils/helper";
 import {
   DeleteEmptyDirsResult,
   FileNode,
-  WalkError,
+  FileError,
   WalkResult,
 } from "../../utils/types";
 import { Dirent } from "node:fs";
@@ -15,7 +15,7 @@ export async function walk(
   level: number = 0,
   result: FileNode[] = [],
   _visited = new Set<string>(),
-  _errors: WalkError[] = [] ,
+  _errors: FileError[] = []
 ): Promise<WalkResult> {
   // Resolve real path to avoid symlink loops
   const real = await fs.realpath(path);
@@ -43,18 +43,19 @@ export async function walk(
             fullPath: full,
             name: entry.name,
             size: stat.size,
+            mtime: stat.mtime,
           });
         }
       } catch (err: any) {
         _errors.push({
-          path: full,
+          file: full,
           error: err?.message ?? String(err),
         });
       }
     }
   } catch (error: any) {
     _errors.push({
-      path,
+      file: path,
       error: error?.message ?? String(error),
     });
   }

@@ -1,9 +1,4 @@
-import {
-  DedupeOptions,
-  DedupeResult,
-  DedupeStrategy,
-  FileNode,
-} from "../../utils/types";
+import { DedupeOptions, DedupeResult, FileNode } from "../../utils/types";
 import { walk } from "./handlers";
 import fs from "fs/promises";
 import { createReadStream } from "fs";
@@ -43,7 +38,8 @@ const chooseCanonical = (
   files: FileNode[],
   options: DedupeOptions
 ): FileNode => {
-  const { strategy = "first", canonicalPath } = options;
+  const { canonicalPath, strategy = canonicalPath ? "canonical" : "first" } =
+    options;
 
   switch (strategy) {
     case "canonical":
@@ -129,7 +125,8 @@ export async function dedupe(
       throw new Error(`Path '${root}' is not a directory`);
     }
 
-    const { files } = await walk(root);
+    const { files, errors: walkErrors } = await walk(root);
+    result.errors.push(...walkErrors);
 
     // Filter out ignored files
     const filteredFiles = files.filter(
@@ -156,7 +153,6 @@ export async function dedupe(
     );
 
     const hashMap = new Map<string, FileNode[]>();
-    let processed = 0;
 
     for (const sizeGroup of potentialDuplicates) {
       for (const file of sizeGroup) {
@@ -167,8 +163,6 @@ export async function dedupe(
             hashMap.set(hash, []);
           }
           hashMap.get(hash)!.push(file);
-
-          processed++;
         } catch (error) {
           const err = error as Error;
           result.errors.push({

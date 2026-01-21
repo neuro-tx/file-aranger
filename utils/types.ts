@@ -16,14 +16,14 @@ export type OperationStats = {
 
 export type MediaRules = Record<string, readonly string[]>;
 
-export interface WalkError {
-  path: string;
+export interface FileError {
+  file: string;
   error: string;
 }
 
 export interface WalkResult {
   files: FileNode[];
-  errors: WalkError[];
+  errors: FileError[];
 }
 
 export type ConflictStrategy = "rename" | "overwrite" | "skip";
@@ -39,7 +39,7 @@ export type DedupeStrategy =
   | "newest" // Keep newest file by modification time
   | "shortest-path" // Keep file with shortest path
   | "longest-path" // Keep file with longest path
-  | "first" // Keep first file encountered
+  | "first"; // Keep first file encountered
 
 export interface DedupeOptions {
   strategy?: DedupeStrategy;
@@ -55,10 +55,7 @@ export interface DedupeResult {
   duplicateGroups: number;
   filesDeleted: number;
   spaceSaved: number;
-  errors: Array<{
-    file: string;
-    error: string;
-  }>;
+  errors: FileError[];
   groups: Array<{
     hash: string;
     canonical: FileNode;
