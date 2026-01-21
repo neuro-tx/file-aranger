@@ -1,10 +1,25 @@
 import { mediaTypes } from "../../utils/names";
-import { FileNode, MediaRules } from "../../utils/types";
+import { FileNode, MediaRules, OperationStats } from "../../utils/types";
 import * as sp from "node:path";
 import fs from "fs/promises";
-import { normalizeExt, normalizePath } from "../../utils/helper";
+import {
+  normalizeExt,
+  normalizePath,
+  move as safeMove,
+} from "../../utils/helper";
+import { resolveLogger } from "../../utils/logger";
 
-export function resolveRules(user?: MediaRules): MediaRules {
+interface ArrangeOptions {
+  rules?: MediaRules;
+  dryRun?: boolean;
+  onMove?: (
+    move: { file: string; dest: string },
+    stats: OperationStats
+  ) => void;
+  log?: boolean;
+}
+
+function resolveRules(user?: MediaRules): MediaRules {
   const system = mediaTypes;
   if (!user) return system;
   // create a copy of sysyem media types for safe edit
@@ -43,7 +58,7 @@ function buildExtMap(rules: MediaRules): Map<string, string> {
   return map;
 }
 
-export function createRouter(rules?: MediaRules) {
+function createRouter(rules?: MediaRules) {
   const resolved = resolveRules(rules);
   const extMap = buildExtMap(resolved);
 
@@ -55,7 +70,7 @@ export function createRouter(rules?: MediaRules) {
   };
 }
 
-export async function intialBuildState(dir: string): Promise<FileNode[]> {
+async function intialBuildState(dir: string): Promise<FileNode[]> {
   const entries = await fs.readdir(normalizePath(dir), {
     withFileTypes: true,
   });
@@ -76,4 +91,82 @@ export async function intialBuildState(dir: string): Promise<FileNode[]> {
     });
   }
   return files;
+}
+
+/**
+ * Arrange files in a folder into sub-folders based on file extension.
+ *
+ * Features:
+ * - Creates necessary folders (Images, Videos, Documents, etc.)
+ * - Skips directories automatically
+ * - Detects the correct folder for each file based on extension rules
+ * - Supports custom rules to override default folders
+ * - Dry-run mode to simulate moves without touching files
+ * - Returns detailed stats for scanned, moved, skipped, and errors
+ * - Optional callback for integration with UI or real-time updates
+ *
+ * @param path The root directory containing files to organize
+ * @param options Optional settings including rules, dryRun, and callback
+ * @returns OperationStats  with scanned, moved, skipped, and error counts
+ */
+export async function arrange(
+  path: string,
+  options?: ArrangeOptions
+): Promise<OperationStats> {
+  const { rules, dryRun = false, onMove, log: enabled = false } = options ?? {};
+  const stats: OperationStats = {
+    scanned: 0,
+    moved: 0,
+    skipped: 0,
+    errors: 0,
+  };
+
+  const logger = resolveLogger(enabled);
+
+  try {
+    const files = await intialBuildState(path);
+    if (files.length === 0) {
+      logger?.info("Nothing to arrange");
+      return stats;
+    }
+    stats.scanned = files.length;
+
+    const route = createRouter(rules);
+    const plan = files.map((f) => route(f, path));
+
+    for (const move of plan) {
+      const src = normalizePath(move.file.fullPath);
+      const dest = normalizePath(move.destPath);
+
+      if (src === dest) {
+        stats.skipped++;
+        onMove?.({ file: src, dest }, stats);
+        logger?.skipped(src);
+        continue;
+      }
+
+      if (dryRun) {
+        stats.moved++;
+        logger?.dryRun(src, dest);
+        onMove?.({ file: src, dest }, stats);
+        continue;
+      }
+
+      try {
+        await safeMove(src, dest);
+        stats.moved++;
+        logger?.success(src, dest);
+        onMove?.({ file: src, dest }, stats);
+      } catch (err) {
+        stats.errors++;
+        logger?.error(src, dest, err);
+        onMove?.({ file: src, dest }, stats);
+      }
+    }
+  } catch (err: any) {
+    logger?.fatal(err);
+    stats.errors = stats.scanned;
+  }
+
+  return stats;
 }

@@ -1,4 +1,4 @@
-import { arrange, flatten } from "./src";
+import { arrange, flatten, dedupe } from "./src";
 
 async function name() {
   await arrange("D:/test", {

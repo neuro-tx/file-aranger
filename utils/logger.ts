@@ -1,4 +1,4 @@
-import { OperationStats  } from "./types";
+import { OperationStats } from "./types";
 
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
@@ -38,7 +38,7 @@ const log = {
     console.log(`${colors.blue}[Skip]${RESET} ${DIM}${src}${RESET}`);
   },
 
-  onMove(move: { file: string; dest: string }, stats: OperationStats ) {
+  onMove(move: { file: string; dest: string }, stats: OperationStats) {
     console.log(
       `${colors.cyan}${BOLD}[${stats.moved}/${stats.scanned}]${RESET} ` +
         `${DIM}${move.file}${RESET} ${ARROW} ` +
