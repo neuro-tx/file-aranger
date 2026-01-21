@@ -1,14 +1,9 @@
 import { arrange, flatten, dedupe } from "./src";
 
 async function name() {
-  await arrange("D:/test", {
-    dryRun: true,
-    log: true,
-  });
-
-  await flatten("D:/test", {
-    deleteEmpty: true,
-  });
+  await arrange("D:/test");
+  await flatten("D:/test");
+  await dedupe("D:/test");
 }
 
 name();

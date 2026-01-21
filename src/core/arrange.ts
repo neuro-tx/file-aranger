@@ -3,6 +3,7 @@ import { FileNode, MediaRules, OperationStats } from "../../utils/types";
 import * as sp from "node:path";
 import fs from "fs/promises";
 import {
+  isDirectory,
   normalizeExt,
   normalizePath,
   move as safeMove,
@@ -118,12 +119,15 @@ export async function arrange(
     scanned: 0,
     moved: 0,
     skipped: 0,
-    errors: 0,
+    errors: [],
   };
 
   const logger = resolveLogger(enabled);
 
   try {
+    const isDir = await isDirectory(path);
+    if (!isDir) throw new Error(`Path '${path}' is not a directory`);
+
     const files = await intialBuildState(path);
     if (files.length === 0) {
       logger?.info("Nothing to arrange");
@@ -158,15 +162,19 @@ export async function arrange(
         logger?.success(src, dest);
         onMove?.({ file: src, dest }, stats);
       } catch (err) {
-        stats.errors++;
+        const e = err as Error;
+        stats.errors.push({
+          file: src,
+          error: e.message,
+        });
         logger?.error(src, dest, err);
         onMove?.({ file: src, dest }, stats);
       }
     }
-  } catch (err: any) {
-    logger?.fatal(err);
-    stats.errors = stats.scanned;
-  }
 
-  return stats;
+    return stats;
+  } catch (error) {
+    const err = error as Error;
+    throw err;
+  }
 }

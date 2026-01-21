@@ -11,7 +11,7 @@ export type OperationStats = {
   scanned: number;
   moved: number;
   skipped: number;
-  errors: number;
+  errors: FileError[];
 };
 
 export type MediaRules = Record<string, readonly string[]>;

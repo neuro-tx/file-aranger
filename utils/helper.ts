@@ -38,3 +38,9 @@ export async function move(src: string, dest: string) {
     await fs.unlink(src);
   }
 }
+
+export const isDirectory = async (path: string): Promise<boolean> => {
+  const stat = await fs.stat(path);
+  if (stat.isDirectory()) return true;
+  return false;
+};

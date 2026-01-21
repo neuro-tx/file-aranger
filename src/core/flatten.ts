@@ -1,6 +1,10 @@
 import * as sp from "node:path";
 import { ConflictStrategy, FileNode, OperationStats } from "../../utils/types";
-import { normalizePath, move as safeMove } from "../../utils/helper";
+import {
+  isDirectory,
+  normalizePath,
+  move as safeMove,
+} from "../../utils/helper";
 import { deleteEmptyDirs, walk } from "./handlers";
 import { resolveLogger } from "../../utils/logger";
 
@@ -82,16 +86,19 @@ export async function flatten(path: string, opts?: FlattenOpts) {
   const stats: OperationStats = {
     scanned: 0,
     moved: 0,
-    errors: 0,
+    errors: [],
     skipped: 0,
   };
 
   const logger = resolveLogger(enabled);
 
   try {
+    const isDir = await isDirectory(path);
+    if (!isDir) throw new Error(`Path '${path}' is not a directory`);
+
     const { files, errors } = await walk(path, depth, level);
     stats.scanned = files.length;
-    stats.errors = errors.length;
+    stats.errors.push(...errors);
 
     if (files.length === 0) {
       logger?.info("Nothing to flatten (no files found)");
@@ -125,7 +132,11 @@ export async function flatten(path: string, opts?: FlattenOpts) {
         stats.moved++;
         logger?.success(src, dest);
       } catch (err) {
-        stats.errors++;
+        const e = err as Error;
+        stats.errors.push({
+          file: src,
+          error: e.message,
+        });
         logger?.error(src, dest, err);
       }
     }
@@ -133,10 +144,10 @@ export async function flatten(path: string, opts?: FlattenOpts) {
     if (deleteEmpty) {
       await deleteEmptyDirs(path);
     }
-  } catch (err) {
-    logger?.fatal(err);
-    stats.errors = stats.scanned;
-  }
 
-  return stats;
+    return stats;
+  } catch (err) {
+    const error = err as Error;
+    throw error;
+  }
 }
