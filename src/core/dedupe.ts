@@ -5,7 +5,6 @@ import { createReadStream } from "fs";
 import crypto from "crypto";
 import { normalizePath } from "../../utils/helper";
 import { resolveLogger } from "../../utils/logger";
-import path from "path";
 
 const hashFile = (filePath: string): Promise<string> => {
   return new Promise((resolve, reject) => {

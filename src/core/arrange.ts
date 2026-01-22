@@ -1,5 +1,5 @@
 import { mediaTypes } from "../../utils/names";
-import { FileNode, MediaRules, OperationStats } from "../../utils/types";
+import { ArrangeOptions, FileNode, MediaRules, OperationStats } from "../../utils/types";
 import * as sp from "node:path";
 import fs from "fs/promises";
 import {
@@ -9,16 +9,6 @@ import {
   move as safeMove,
 } from "../../utils/helper";
 import { resolveLogger } from "../../utils/logger";
-
-interface ArrangeOptions {
-  rules?: MediaRules;
-  dryRun?: boolean;
-  onMove?: (
-    move: { file: string; dest: string },
-    stats: OperationStats
-  ) => void;
-  log?: boolean;
-}
 
 function resolveRules(user?: MediaRules): MediaRules {
   const system = mediaTypes;

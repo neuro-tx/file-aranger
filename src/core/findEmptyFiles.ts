@@ -1,25 +1,8 @@
 import { isDirectory } from "../../utils/helper";
 import { resolveLogger } from "../../utils/logger";
-import { FileError, FileNode } from "../../utils/types";
+import { FindEmptyOptions, FinderState } from "../../utils/types";
 import { walk } from "./handlers";
 import fs from "fs/promises";
-
-interface FindEmptyOptions {
-  deleteEmpty?: boolean;
-  dryRun?: boolean;
-  onEmptyFile?: (file: string, deleted: boolean) => void;
-  onError?: (file: string, error: Error) => void;
-  getFiles?: boolean;
-  log?: boolean;
-}
-
-interface FinderState {
-  scanned: number;
-  deleted: number;
-  errors: FileError[];
-  empty: number;
-  files: Pick<FileNode, "fullPath" | "dir" | "size">[];
-}
 
 /**
  * Find and optionally delete (dryRun by default) empty files (0 bytes) in a directory tree

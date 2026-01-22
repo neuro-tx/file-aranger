@@ -65,3 +65,39 @@ export interface DedupeResult {
     spaceSaved: number;
   }>;
 }
+
+export interface ArrangeOptions {
+  rules?: MediaRules;
+  dryRun?: boolean;
+  onMove?: (
+    move: { file: string; dest: string },
+    stats: OperationStats
+  ) => void;
+  log?: boolean;
+}
+
+export interface FlattenOpts {
+  depth?: number;
+  dryRun?: boolean;
+  conflict?: ConflictStrategy;
+  level?: number;
+  deleteEmpty?: boolean;
+  log?: boolean;
+}
+
+export interface FindEmptyOptions {
+  deleteEmpty?: boolean;
+  dryRun?: boolean;
+  onEmptyFile?: (file: string, deleted: boolean) => void;
+  onError?: (file: string, error: Error) => void;
+  getFiles?: boolean;
+  log?: boolean;
+}
+
+export interface FinderState {
+  scanned: number;
+  deleted: number;
+  errors: FileError[];
+  empty: number;
+  files: Pick<FileNode, "fullPath" | "dir" | "size">[];
+}

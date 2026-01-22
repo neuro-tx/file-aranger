@@ -1,5 +1,5 @@
 import * as sp from "node:path";
-import { ConflictStrategy, FileNode, OperationStats } from "../../utils/types";
+import { ConflictStrategy, FileNode, FlattenOpts, OperationStats } from "../../utils/types";
 import {
   isDirectory,
   normalizePath,
@@ -7,15 +7,6 @@ import {
 } from "../../utils/helper";
 import { deleteEmptyDirs, walk } from "./handlers";
 import { resolveLogger } from "../../utils/logger";
-
-interface FlattenOpts {
-  depth?: number;
-  dryRun?: boolean;
-  conflict?: ConflictStrategy;
-  level?: number;
-  deleteEmpty?: boolean;
-  log?: boolean;
-}
 
 const resolveNames = (
   destRoot: string,
