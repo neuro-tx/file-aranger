@@ -44,3 +44,10 @@ export const isDirectory = async (path: string): Promise<boolean> => {
   if (stat.isDirectory()) return true;
   return false;
 };
+
+export const formatSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+};

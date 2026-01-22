@@ -1,9 +1,11 @@
 import { DedupeOptions, DedupeResult, FileNode } from "../../utils/types";
-import { walk } from "./handlers";
+import { deleteEmptyDirs, walk } from "./handlers";
 import fs from "fs/promises";
 import { createReadStream } from "fs";
 import crypto from "crypto";
 import { normalizePath } from "../../utils/helper";
+import { resolveLogger } from "../../utils/logger";
+import path from "path";
 
 const hashFile = (filePath: string): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -107,7 +109,16 @@ export async function dedupe(
   root: string,
   options: DedupeOptions = {}
 ): Promise<DedupeResult> {
-  const { dryRun = false, ignorePatterns = [], onDuplicate, onError } = options;
+  const {
+    dryRun = false,
+    ignorePatterns = [],
+    onDuplicate,
+    onError,
+    deleteEmpty = false,
+    log: enabled = false,
+  } = options;
+
+  const logger = resolveLogger(enabled);
 
   // Initialize result
   const result: DedupeResult = {
@@ -118,6 +129,12 @@ export async function dedupe(
     errors: [],
     groups: [],
   };
+
+  logger?.info(
+    dryRun
+      ? "Running in dry-run mode (no changes will be applied)"
+      : `Starting scan in ${root}`
+  );
 
   try {
     const stats = await fs.stat(root);
@@ -134,6 +151,7 @@ export async function dedupe(
     );
     result.scannedFiles = filteredFiles.length;
     if (filteredFiles.length === 0) {
+      logger?.info("there is no duplicated files.");
       return result;
     }
 
@@ -158,6 +176,7 @@ export async function dedupe(
       for (const file of sizeGroup) {
         try {
           const hash = await hashFile(file.fullPath);
+          logger?.hashing(`Hashing ${file.fullPath}`);
 
           if (!hashMap.has(hash)) {
             hashMap.set(hash, []);
@@ -169,6 +188,7 @@ export async function dedupe(
             file: file.fullPath,
             error: err.message,
           });
+          logger?.errorMessage(err.message);
           onError?.(file, err);
         }
       }
@@ -188,6 +208,7 @@ export async function dedupe(
         const canonical = chooseCanonical(group, options);
         const duplicates = group.filter((f) => f !== canonical);
         onDuplicate?.(canonical, duplicates);
+        logger?.canonical(canonical.fullPath);
 
         const groupInfo = {
           hash,
@@ -200,8 +221,11 @@ export async function dedupe(
         // Delete duplicates
         for (const dup of duplicates) {
           try {
-            if (!dryRun) {
+            if (dryRun) {
+              logger?.deleteDryRun(dup.fullPath);
+            } else {
               await fs.unlink(dup.fullPath);
+              logger?.deleted(dup.fullPath, dup.size);
             }
             result.filesDeleted++;
             result.spaceSaved += dup.size;
@@ -212,6 +236,7 @@ export async function dedupe(
               file: dup.fullPath,
               error: err.message,
             });
+            logger?.errorMessage(err.message);
             onError?.(dup, err);
           }
         }
@@ -221,6 +246,15 @@ export async function dedupe(
           file: `group:${hash.substring(0, 8)}`,
           error: err.message,
         });
+        logger?.errorMessage(err.message);
+      }
+    }
+    logger?.dedupeSummary(result.filesDeleted, result.spaceSaved);
+
+    if (deleteEmpty) {
+      if (!dryRun) {
+        const { deleted } = await deleteEmptyDirs(root);
+        logger?.deleted(`Deleted ${deleted} empty directories`);
       }
     }
 

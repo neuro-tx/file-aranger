@@ -48,6 +48,8 @@ export interface DedupeOptions {
   ignorePatterns?: string[];
   onDuplicate?: (canonical: FileNode, duplicates: FileNode[]) => void;
   onError?: (file: FileNode, error: Error) => void;
+  log?: boolean;
+  deleteEmpty?: boolean;
 }
 
 export interface DedupeResult {

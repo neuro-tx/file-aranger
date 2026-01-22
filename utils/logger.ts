@@ -1,3 +1,4 @@
+import { formatSize } from "./helper";
 import { OperationStats } from "./types";
 
 const RESET = "\x1b[0m";
@@ -12,6 +13,7 @@ const colors = {
   cyan: "\x1b[36m",
   gray: "\x1b[90m",
   blue: "\x1b[34m",
+  magenta: "\x1b[35m",
 };
 
 const ARROW = "➜";
@@ -62,6 +64,50 @@ const log = {
     console.error(
       `${colors.red}${BOLD}[Fatal]${RESET} Arrange process failed\n` +
         `  ${colors.red}${(err as Error)?.message ?? err}${RESET}`
+    );
+  },
+
+  warn(message: string) {
+    console.warn(`${colors.yellow}[WARN]${RESET} ${message}`);
+  },
+
+  errorMessage(message: string) {
+    console.error(`${colors.red}${BOLD}[Error]${RESET} ${message}`);
+  },
+
+  hashing(file: string) {
+    console.log(`${colors.magenta}[Hash]${RESET} ${DIM}${file}${RESET}`);
+  },
+
+  duplicateGroup(count: number) {
+    console.log(
+      `${colors.yellow}${BOLD}[Duplicate]${RESET} ` +
+        `${count} identical files found`
+    );
+  },
+
+  canonical(file: string) {
+    console.log(`${colors.blue}${BOLD}[Keep]${RESET} ${colors.magenta}${file}${RESET}`);
+  },
+
+  deleted(file: string, size?: number) {
+    console.log(
+      `${colors.red}[Delete]${RESET} ${DIM}${file}${RESET}` +
+        (size ? ` ${colors.gray}(${formatSize(size)})${RESET}` : "")
+    );
+  },
+
+  deleteDryRun(file: string) {
+    console.log(
+      `${colors.yellow}[DryRun]${RESET} delete ${DIM}${file}${RESET}`
+    );
+  },
+
+  dedupeSummary(files: number, savedBytes: number) {
+    console.log(
+      `${colors.brightGreen}${BOLD}[Done]${RESET} ` +
+        `${files} files removed, ` +
+        `${colors.green}${formatSize(savedBytes)} saved${RESET}`
     );
   },
 };
