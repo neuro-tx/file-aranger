@@ -101,3 +101,18 @@ export interface FinderState {
   empty: number;
   files: Pick<FileNode, "fullPath" | "dir" | "size">[];
 }
+
+export interface ArchiveResult {
+  scanned: number;
+  archived: number;
+  archivedSize: string;
+  errors: FileError[];
+}
+
+export interface ArchiveOptions {
+  durationDays: number;
+  archivePath: string;
+  dryRun?: boolean;
+  onArchive?: (file: string, dest: string) => void;
+  log?: boolean;
+}

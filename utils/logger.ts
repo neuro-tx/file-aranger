@@ -87,7 +87,9 @@ const log = {
   },
 
   canonical(file: string) {
-    console.log(`${colors.blue}${BOLD}[Keep]${RESET} ${colors.magenta}${file}${RESET}`);
+    console.log(
+      `${colors.blue}${BOLD}[Keep]${RESET} ${colors.magenta}${file}${RESET}`
+    );
   },
 
   deleted(file: string, size?: number) {
@@ -109,6 +111,21 @@ const log = {
         `${files} files removed, ` +
         `${colors.green}${formatSize(savedBytes)} saved${RESET}`
     );
+  },
+
+  // `${colors.yellow}${BOLD}${dest}${RESET}`
+  archive(src: string, dryRun=false) {
+    if (dryRun) {
+      console.log(
+        `${colors.yellow}${BOLD}[DryRun]${RESET} ` +
+          `${colors.blue}archive${RESET} ` +
+          `${DIM}${src}${RESET}`
+      );
+    } else {
+      console.log(
+        `${colors.blue}${BOLD}[Archive]${RESET} ` + `${DIM}${src}${RESET}`
+      );
+    }
   },
 };
 

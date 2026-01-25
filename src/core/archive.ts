@@ -3,12 +3,8 @@ import { walk } from "./handlers";
 import fs from "fs/promises";
 import { move as safeMove } from "../../utils/helper";
 import * as sp from "node:path";
-
-interface ArchiveResult {
-  scanned: number;
-  archived: number;
-  archivedSize: string;
-}
+import { resolveLogger } from "../../utils/logger";
+import { ArchiveOptions, ArchiveResult, FileError } from "../../utils/types";
 
 /**
  * Archive old files based on modification time threshold.
@@ -17,17 +13,21 @@ interface ArchiveResult {
  * Files are considered "old" based on their last modification time (mtime).
  *
  * @param root - Root directory to scan for old files
- * @param archivePath - Archive destination path
- * @param durationDays - Number of days - files older than this will be archived
+ * @param opts - Archive configuration options
+ * @returns ArchiveResult with statistics and errors
+ *
  * @returns ArchiveResult with statistics
  */
 
-export async function archive(
-  root: string,
-  archivePath: string,
-  durationDays: number,
-  dryRun?: boolean
-) {
+export async function archive(root: string, opts: ArchiveOptions) {
+  const {
+    archivePath,
+    durationDays,
+    dryRun = false,
+    log: enabled = false,
+    onArchive,
+  } = opts;
+
   const isDir = await isDirectory(root);
   if (!isDir) {
     throw new Error(`Path '${root}' is not a directory`);
@@ -44,12 +44,20 @@ export async function archive(
   const result: ArchiveResult = {
     scanned: 0,
     archived: 0,
-    archivedSize: "",
+    archivedSize: "0 MB",
+    errors: [],
   };
 
+  const logger = resolveLogger(enabled);
+
   try {
-    const { files } = await walk(root);
+    const { files, errors } = await walk(root);
+    if (errors && errors.length > 0) {
+      result.errors.push(...errors);
+    }
+
     if (!files || files.length === 0) {
+      logger?.info("No files found to scan");
       return result;
     }
     result.scanned = files.length;
@@ -64,6 +72,7 @@ export async function archive(
     });
 
     if (oldFiles.length === 0) {
+      logger?.info("No files eligible for archiving");
       return result;
     }
 
@@ -72,6 +81,7 @@ export async function archive(
       try {
         await fs.access(archivePath);
       } catch {
+        logger?.info(`Creating archive directory ${archivePath}`);
         await fs.mkdir(archivePath, { recursive: true });
       }
     }
@@ -80,9 +90,25 @@ export async function archive(
     for (const file of oldFiles) {
       toatlSize += file.size;
       const destPath = normalizePath(sp.join(archivePath, file.name));
-      if (!dryRun) {
-        await safeMove(file.fullPath, destPath);
+      if (dryRun) {
+        logger?.archive(file.fullPath, dryRun);
         result.archived++;
+        continue;
+      }
+
+      try {
+        await safeMove(file.fullPath, destPath);
+        onArchive?.(file.fullPath, destPath);
+        result.archived++;
+
+        logger?.archive(file.fullPath, dryRun);
+      } catch (err) {
+        logger?.error(file.fullPath, destPath, err);
+
+        result.errors.push({
+          file: file.fullPath,
+          error: (err as Error).message,
+        });
       }
     }
     result.archivedSize = formatSize(toatlSize);
