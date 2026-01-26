@@ -11,6 +11,9 @@
 - 🔍 **Smart File Deduplication** - Find and remove duplicate files using SHA-256 hashing
 - 📂 **Intelligent File Organization** - Auto-organize files into folders by type
 - 🧹 **Empty File Cleanup** - Find and remove zero-byte files
+- 📦 **Large File Detection** - Identify files exceeding size thresholds
+- 🗄️ **Automated Archiving** - Move old files based on age to archive locations
+- 🚀 **Production-Ready** - Comprehensive error handling and detailed reporting
 - 💪 **TypeScript Native** - Full type safety and IntelliSense support
 - 🎯 **Zero Dependencies** - Uses only Node.js built-in modules (crypto, fs, path)
 - ⚡ **High Performance** - Optimized algorithms with size-based pre-filtering
@@ -21,7 +24,13 @@
 ## 🚀 Quick Start
 
 ```typescript
-import { dedupe, arrange, findEmptyFiles } from "./src";
+import {
+  dedupe,
+  arrange,
+  findEmptyFiles,
+  findLargeFiles,
+  archive,
+} from "./src";
 
 // Remove duplicate files
 const dedupeResult = await dedupe("/path/to/files", {
@@ -45,6 +54,17 @@ const cleanResult = await findEmptyFiles("/path/to/clean", {
   deleteEmpty: true,
 });
 console.log(`Removed ${cleanResult.deleted} empty files`);
+
+// Find large files
+const largeFiles = await findLargeFiles("/path/to/scan", 100, 20);
+console.log(`Found ${largeFiles.matched} files larger than 100MB`);
+
+// Archive old files
+const archiveResult = await archive("/documents", {
+  archivePath: "/archive/old-docs",
+  durationDays: 90,
+});
+console.log(`Archived ${archiveResult.archived} old files`);
 ```
 
 ---
@@ -222,7 +242,7 @@ console.log(`Would move ${preview.moved} files`);
 // Custom folder rules
 const custom = await arrange("/my/files", {
   rules: {
-    // rules sholud not contain dots(.)
+    // rules should not contain dots(.)
     Projects: ["psd", "ai", "sketch", "fig"],
     Databases: ["db", "sqlite", "sql"],
     Config: ["json", "yaml", "yml", "toml", "ini"],
@@ -242,7 +262,7 @@ await arrange("/downloads", {
 // Override default rules (move .js to Scripts instead of Code)
 await arrange("/files", {
   rules: {
-    Scripts: [".js", ".mjs", ".sh", ".bat", ".ps1"],
+    Scripts: ["js", "mjs", "sh", "bat", "ps1"],
   },
 });
 ```
@@ -298,7 +318,7 @@ interface FindEmptyResult {
 ```typescript
 // Find empty files without deleting
 const found = await findEmptyFiles("/path/to/check");
-console.log(`Found ${found.emptyFiles} empty files`);
+console.log(`Found ${found.empty} empty files`);
 
 // Delete empty files
 const deleted = await findEmptyFiles("/path/to/clean", {
@@ -327,6 +347,181 @@ await findEmptyFiles("/path", {
 
 ---
 
+### 📦 Large File Detection
+
+Find files that exceed a specified size threshold, useful for identifying space hogs.
+
+#### `findLargeFiles(root: string, minSizeMB?: number, limit?: number): Promise<LargeFinderState>`
+
+**Parameters:**
+
+| Parameter   | Type     | Default | Description                       |
+| ----------- | -------- | ------- | --------------------------------- |
+| `root`      | `string` | -       | Root directory to scan            |
+| `minSizeMB` | `number` | `500`   | Minimum file size in MB           |
+| `limit`     | `number` | `10`    | Maximum number of files to return |
+
+**Returns:**
+
+```typescript
+interface LargeFinderState {
+  limit: number; // Maximum files requested
+  matched: number; // Total files matching criteria
+  filesPath: LargeFile[]; // Array of large files found
+  errors?: FileError[]; // Errors encountered
+}
+
+interface LargeFile {
+  path: string; // Full file path
+  sizeMB: string; // Human-readable size (e.g., "1.5 GB")
+  sizeBytes: number; // Size in bytes
+}
+```
+
+**Examples:**
+
+```typescript
+// Find top 10 files larger than 500MB (defaults)
+const result = await findLargeFiles("/path/to/scan");
+console.log(`Found ${result.matched} large files`);
+result.filesPath.forEach((file) => {
+  console.log(`${file.path}: ${file.sizeMB}`);
+});
+
+// Find top 20 files larger than 100MB
+const custom = await findLargeFiles("/path/to/scan", 100, 20);
+console.log(`Top 20 files over 100MB:`);
+custom.filesPath.forEach((file, i) => {
+  console.log(`${i + 1}. ${file.path} - ${file.sizeMB}`);
+});
+
+// Find all files larger than 1GB
+const huge = await findLargeFiles("/videos", 1024, 100);
+console.log(`Found ${huge.matched} files over 1GB`);
+console.log(`Showing top ${huge.filesPath.length}`);
+
+// Calculate total size of large files
+const large = await findLargeFiles("/downloads", 50);
+const totalGB =
+  large.filesPath.reduce((sum, f) => sum + f.sizeBytes, 0) / 1024 ** 3;
+console.log(`Large files occupy ${totalGB.toFixed(2)} GB`);
+```
+
+---
+
+### 🗄️ File Archiving
+
+Automatically move old files to an archive directory based on modification time.
+
+#### `archive(root: string, options: ArchiveOptions): Promise<ArchiveResult>`
+
+**Parameters:**
+
+| Parameter | Type             | Description                          |
+| --------- | ---------------- | ------------------------------------ |
+| `root`    | `string`         | Root directory to scan for old files |
+| `options` | `ArchiveOptions` | Archive configuration                |
+
+**Options:**
+
+```typescript
+interface ArchiveOptions {
+  archivePath: string; // Destination archive directory
+  durationDays: number; // Files older than this (in days) will be archived
+  dryRun?: boolean; // Preview without moving files
+  log?: boolean; // Enable logging
+  onArchive?: (src: string, dest: string) => void; // Callback on archive
+}
+```
+
+**Returns:**
+
+```typescript
+interface ArchiveResult {
+  scanned: number; // Total files scanned
+  archived: number; // Files moved to archive
+  archivedSize: string; // Total size archived (formatted)
+  errors: FileError[]; // Errors encountered
+}
+```
+
+**Examples:**
+
+```typescript
+// Archive files older than 90 days
+const result = await archive("/documents", {
+  archivePath: "/archive/old-docs",
+  durationDays: 90,
+});
+console.log(`Archived ${result.archived} files (${result.archivedSize})`);
+
+// Dry run - preview what would be archived
+const preview = await archive("/logs", {
+  archivePath: "/archive/logs",
+  durationDays: 30,
+  dryRun: true,
+});
+console.log(
+  `Would archive ${preview.archived} files (${preview.archivedSize})`
+);
+
+// Archive with logging enabled
+const logged = await archive("/temp", {
+  archivePath: "/archive/temp",
+  durationDays: 7,
+  log: true,
+});
+
+// Archive with progress tracking
+await archive("/data", {
+  archivePath: "/archive/data",
+  durationDays: 365,
+  onArchive: (src, dest) => {
+    console.log(`Archived: ${src} → ${dest}`);
+  },
+});
+
+// Handle errors gracefully
+const archiveResult = await archive("/project", {
+  archivePath: "/backup/project",
+  durationDays: 180,
+});
+
+if (archiveResult.errors.length > 0) {
+  console.log(`⚠️  ${archiveResult.errors.length} files failed to archive:`);
+  archiveResult.errors.forEach((err) => {
+    console.log(`  ${err.file}: ${err.error}`);
+  });
+}
+console.log(`✓ Successfully archived ${archiveResult.archived} files`);
+```
+
+**Age Calculation:**
+
+Files are considered "old" based on their **last modification time (mtime)**:
+
+```typescript
+// Archive files not modified in the last 90 days
+await archive("/data", {
+  archivePath: "/archive",
+  durationDays: 90,
+});
+
+// Archive files older than 1 year
+await archive("/documents", {
+  archivePath: "/archive/documents",
+  durationDays: 365,
+});
+
+// Archive files older than 1 week
+await archive("/temp", {
+  archivePath: "/archive/temp",
+  durationDays: 7,
+});
+```
+
+---
+
 ## 🔧 Advanced Usage
 
 ### Combining Operations
@@ -334,11 +529,15 @@ await findEmptyFiles("/path", {
 ```typescript
 // Complete cleanup workflow
 async function cleanupDirectory(path: string) {
-  console.log("Step 1: Removing empty files...");
-  const empty = await findEmptyFiles(path, { log: true, dryRun: false });
+  console.log("Step 1: Finding large files...");
+  const large = await findLargeFiles(path, 1000);
+  console.log(`✓ Found ${large.matched} files over 1GB`);
+
+  console.log("\nStep 2: Removing empty files...");
+  const empty = await findEmptyFiles(path, { deleteEmpty: true });
   console.log(`✓ Removed ${empty.deleted} empty files`);
 
-  console.log("\nStep 2: Finding duplicates...");
+  console.log("\nStep 3: Finding duplicates...");
   const dupes = await dedupe(path, {
     strategy: "newest",
     ignorePatterns: ["node_modules", ".git"],
@@ -346,7 +545,16 @@ async function cleanupDirectory(path: string) {
   console.log(`✓ Removed ${dupes.filesDeleted} duplicates`);
   console.log(`✓ Saved ${(dupes.spaceSaved / 1024 / 1024).toFixed(2)} MB`);
 
-  console.log("\nStep 3: Organizing files...");
+  console.log("\nStep 4: Archiving old files...");
+  const archived = await archive(path, {
+    archivePath: `${path}/archive`,
+    durationDays: 180,
+  });
+  console.log(
+    `✓ Archived ${archived.archived} old files (${archived.archivedSize})`
+  );
+
+  console.log("\nStep 5: Organizing files...");
   const organized = await arrange(path);
   console.log(`✓ Organized ${organized.moved} files`);
 
@@ -423,6 +631,18 @@ const result = await dedupe("/large/directory", {
 
 - Size check from file stats (no content reading)
 - Batch processing with minimal I/O
+
+**Large Files:**
+
+- Size filtering from file stats (fast lookup)
+- Sorted results by size
+- Memory-efficient processing
+
+**Archive:**
+
+- Single-pass directory scan
+- mtime comparison (fast date checks)
+- Atomic file moves
 
 ---
 
@@ -527,6 +747,34 @@ type DedupeStrategy =
   | "shortest-path"
   | "longest-path"
   | "first";
+
+interface LargeFile {
+  path: string;
+  sizeMB: string;
+  sizeBytes: number;
+}
+
+interface LargeFinderState {
+  limit: number;
+  matched: number;
+  filesPath: LargeFile[];
+  errors?: FileError[];
+}
+
+interface ArchiveOptions {
+  archivePath: string;
+  durationDays: number;
+  dryRun?: boolean;
+  log?: boolean;
+  onArchive?: (src: string, dest: string) => void;
+}
+
+interface ArchiveResult {
+  scanned: number;
+  archived: number;
+  archivedSize: string;
+  errors: FileError[];
+}
 ```
 
 ---
@@ -549,9 +797,9 @@ await dedupe("/Photos", {
 // Auto-organize messy downloads
 await arrange("/Downloads", {
   rules: {
-    Screenshots: [".png"],
-    Installers: [".exe", ".dmg", ".pkg"],
-    EBooks: [".epub", ".mobi", ".pdf"],
+    Screenshots: ["png"],
+    Installers: ["exe", "dmg", "pkg"],
+    EBooks: ["epub", "mobi", "pdf"],
   },
 });
 ```
@@ -583,6 +831,50 @@ await dedupe("/Backups", {
     );
   },
 });
+```
+
+### Disk Space Analysis
+
+```typescript
+// Analyze what's taking up space
+async function analyzeDiskUsage(path: string) {
+  console.log("Disk Space Analysis\n");
+
+  // Find largest files
+  const large = await findLargeFiles(path, 50, 50);
+  const largeSize = large.filesPath.reduce((sum, f) => sum + f.sizeBytes, 0);
+  console.log(
+    `Large files (>50MB): ${large.matched} files, ${(
+      largeSize /
+      1024 ** 3
+    ).toFixed(2)} GB`
+  );
+
+  // Find duplicates
+  const dupes = await dedupe(path, { dryRun: true });
+  console.log(
+    `Duplicate files: ${dupes.filesDeleted} files, ${(
+      dupes.spaceSaved /
+      1024 ** 2
+    ).toFixed(2)} MB`
+  );
+
+  // Find old files
+  const old = await archive(path, {
+    archivePath: "/tmp/archive",
+    durationDays: 180,
+    dryRun: true,
+  });
+  console.log(
+    `Old files (>180 days): ${old.archived} files, ${old.archivedSize}`
+  );
+
+  // Find empty files
+  const empty = await findEmptyFiles(path);
+  console.log(`Empty files: ${empty.empty} files`);
+}
+
+await analyzeDiskUsage("/home/user");
 ```
 
 ---
